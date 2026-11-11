@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Käseclicker</title>
+<style>
+:root{--line:#7a5426;--txt:#fff4dc;--mut:#d9bf8f;--gold:#ffd54a;--ok:#9be36b;--bad:#ff8a7a;--panel:rgba(30,18,8,.85)}
+*{box-sizing:border-box}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+body{-webkit-touch-callout:none;overscroll-behavior:none}
+textarea{user-select:text;-webkit-user-select:text}
+.th{display:none}
+@media(hover:none){.th{display:inline}}
+body{margin:0;font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--txt);background:radial-gradient(circle at 18% 25%,#7a4a1c,transparent 55%),radial-gradient(circle at 85% 80%,#5a3412,transparent 50%),linear-gradient(160deg,#4a2c12,#1f1208);min-height:100vh;overflow-x:hidden;user-select:none;-webkit-user-select:none}
+header{display:flex;align-items:center;gap:14px;padding:8px 14px;background:rgba(0,0,0,.4);border-bottom:2px solid var(--line);height:48px}
+header h1{margin:0;font-size:22px;color:var(--gold);text-shadow:0 2px 0 #000;white-space:nowrap}
+#ticker{flex:1;overflow:hidden;white-space:nowrap;color:var(--mut);font-style:italic;font-size:14px}
+#ticker span{display:inline-block;animation:tickIn .6s ease-out}
+@keyframes tickIn{from{opacity:0;transform:translateY(12px)}}
+main{display:grid;grid-template-columns:minmax(290px,1fr) minmax(320px,1.15fr) minmax(310px,1fr);gap:10px;padding:10px;height:calc(100vh - 48px)}
+section{background:var(--panel);border:2px solid var(--line);border-radius:12px;overflow:auto;position:relative}
+#left{display:flex;flex-direction:column;align-items:center;padding:14px;overflow:hidden}
+#bank{font-size:19px;color:var(--mut);cursor:pointer}
+#bank:hover{color:var(--gold)}
+#count{font-size:32px;font-weight:bold;color:var(--gold);text-shadow:0 3px 0 #000;text-align:center;line-height:1.1;margin-top:4px}
+#count small{display:block;font-size:16px;color:var(--txt)}
+#cpsl{color:var(--mut);font-size:14px;margin:4px 0;text-align:center}
+#buffs{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;min-height:26px}
+.buff{background:linear-gradient(90deg,#ff9800,#ffd54a);color:#2a1606;font-weight:bold;font-size:12px;padding:3px 9px;border-radius:20px;animation:pulse 1s infinite}
+#cwrap{position:relative;width:min(320px,74vw);aspect-ratio:1;margin:auto}
+#rays{position:absolute;inset:-6%;background:repeating-conic-gradient(rgba(255,213,74,.17) 0 9deg,transparent 9deg 20deg);-webkit-mask-image:radial-gradient(circle,#000 20%,transparent 68%);mask-image:radial-gradient(circle,#000 20%,transparent 68%);animation:spin 25s linear infinite;pointer-events:none}
+#orbit{position:absolute;inset:0;animation:spin 45s linear infinite;pointer-events:none}
+#orbit span{position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px;font-size:17px;line-height:20px;text-align:center}
+#cheese{position:absolute;inset:11%;border:0;background:none;cursor:pointer;padding:0;filter:drop-shadow(0 12px 16px rgba(0,0,0,.6));animation:breathe 3s ease-in-out infinite;touch-action:manipulation;-webkit-tap-highlight-color:transparent;outline:none}
+#cheese svg{width:100%;height:100%;display:block;transition:transform .07s}
+#cheese:active svg{transform:scale(.92)}
+#cheese.flo{filter:drop-shadow(0 0 14px #ffd54a) drop-shadow(0 12px 16px rgba(0,0,0,.6))}
+#typeName{margin-top:4px;color:var(--mut);font-size:14px;text-align:center}
+@keyframes breathe{50%{transform:scale(1.04)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{filter:brightness(1.35)}}
+.ft{position:fixed;pointer-events:none;font-weight:bold;color:#fff;text-shadow:0 2px 3px #000;animation:ft 1s ease-out forwards;z-index:70;font-size:20px;white-space:nowrap;transform:translateX(-50%)}
+.ft.big{font-size:26px;color:var(--gold);animation-duration:2.2s}
+.ft.sm{font-size:14px;opacity:.75}
+@keyframes ft{to{margin-top:-80px;opacity:0}}
+.crumb{position:fixed;width:8px;height:8px;background:var(--gold);border-radius:2px;pointer-events:none;z-index:69;animation:crumb .7s ease-out forwards}
+@keyframes crumb{to{transform:translate(var(--dx),var(--dy)) rotate(400deg);opacity:0}}
+.st-h{padding:8px 10px;font-weight:bold;color:var(--gold);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#26170a;z-index:3}
+.amt button,.tabs button,.btn{background:#3a2410;color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:4px 9px;cursor:pointer;font:inherit;font-size:13px}
+.amt button.on,.tabs button.on{background:var(--gold);color:#2a1606;font-weight:bold}
+.btn:hover{border-color:var(--gold)}
+.btn.big{font-size:16px;padding:9px 16px;background:linear-gradient(#ffd54a,#e0a020);color:#2a1606;font-weight:bold}
+.btn.big:disabled{opacity:.4;cursor:default}
+#ups{display:flex;flex-wrap:wrap;gap:5px;padding:8px;min-height:30px}
+#ups:empty::after{content:"Noch keine Upgrades verfügbar – weiterklicken!";color:var(--mut);font-size:13px}
+.up{width:50px;height:50px;border-radius:9px;border:2px solid #5a3d1c;background:#3a2410;font-size:25px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.45;position:relative}
+.up svg{width:30px;height:30px}
+.up.can{opacity:1;border-color:var(--gold);box-shadow:0 0 8px rgba(255,213,74,.5)}
+.up.special{border-color:#ff4081;background:linear-gradient(135deg,#6a1238,#3a2410)}
+.up.special.can{animation:pulse 1.1s infinite;box-shadow:0 0 14px #ff4081}
+.up i{position:absolute;bottom:0;right:3px;font-size:10px;color:var(--gold);font-style:normal;font-weight:bold}
+.bld{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid #4a3216;cursor:pointer;opacity:.5}
+.bld.can{opacity:1}
+@media(hover:hover){.bld:hover{background:rgba(255,213,74,.08)}.tn:hover{transform:scale(1.1)}}
+.bld.flash{animation:bflash .3s}
+@keyframes bflash{from{background:rgba(255,213,74,.4)}}
+.bld.myst{cursor:default;opacity:.35}
+.bi{font-size:32px;width:44px;text-align:center}
+.bm{flex:1;min-width:0}.bn{font-weight:bold;font-size:16px}.bc{color:var(--bad);font-size:13px}.bld.can .bc{color:var(--ok)}
+.bo{font-size:28px;font-weight:bold;color:rgba(255,244,220,.35)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:6px;position:sticky;top:0;background:#26170a;z-index:3;border-bottom:1px solid var(--line)}
+.tabs button{flex:1 1 auto}
+.pane{display:none;padding:10px}.pane.on{display:block}
+.hint{color:var(--mut);font-size:13px;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.card{background:#3a2410;border:2px solid #5a3d1c;border-radius:10px;padding:8px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.card svg{width:72px;height:72px}
+.card small{color:var(--mut);font-size:11px}
+.card.on{border-color:var(--gold);box-shadow:0 0 12px rgba(255,213,74,.55)}
+.card.lock{opacity:.45;filter:grayscale(1) brightness(.6);cursor:default}
+.it{font-size:36px;line-height:1.2}
+.card.unk .it{filter:brightness(0) opacity(.5)}
+.cnt{font-size:11px;color:var(--gold)}
+.ach{display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;font-size:22px;border-radius:8px;background:#3a2410;border:2px solid #5a3d1c;margin:2px}
+.ach.got{border-color:var(--gold);background:#5a3a14}
+.ach.no{filter:grayscale(1);opacity:.35}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td{padding:4px 6px;border-bottom:1px solid #4a3216}td:last-child{text-align:right;color:var(--gold)}
+.rdist{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;margin:-4px 0 10px}
+.rdist b{font-weight:bold}
+/* Upgrade-Baum */
+.tsec{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:14px 0 6px;border-top:1px solid var(--line);padding-top:8px}
+.tsec:first-of-type{border-top:0;margin-top:0;padding-top:0}
+.tbr{margin:0 0 6px}
+.tbh{font-weight:bold;color:var(--gold);font-size:14px}
+.tbh small{color:var(--mut);font-weight:normal;font-size:11px;margin-left:6px}
+.trow{display:flex;align-items:center;overflow-x:auto;padding:6px 6px 10px}
+.tn{flex:0 0 46px;height:46px;border-radius:50%;border:3px solid #5a3d1c;background:#3a2410;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;position:relative;transition:transform .15s}
+
+.tn svg{width:28px;height:28px}
+.tn.lock{filter:grayscale(1) brightness(.45);cursor:default}
+.tn.req{opacity:.55}
+.tn.req::after{content:"🔒";position:absolute;right:-5px;bottom:-5px;font-size:12px}
+.tn.av{border-color:#a0782f}
+.tn.av.can{border-color:var(--gold);box-shadow:0 0 10px rgba(255,213,74,.75);animation:pulse 1.2s infinite}
+.tn.own{border-color:var(--gold);background:radial-gradient(circle,#8a5f1c,#3a2410)}
+.tn.own::after{content:"✓";position:absolute;right:-4px;bottom:-5px;font-size:11px;background:var(--ok);color:#1a0e05;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;font-weight:bold}
+.tn.sp{border-color:#ff4081}
+.tn.sp.own{background:radial-gradient(circle,#a0285e,#3a2410)}
+.tn.wear{box-shadow:0 0 0 3px #4fc3f7,0 0 12px #4fc3f7}
+.tl{flex:0 0 16px;height:4px;background:#5a3d1c}
+.tl.on{background:var(--gold)}
+#tip{position:fixed;display:none;z-index:200;max-width:300px;background:#1b1007;border:2px solid var(--gold);border-radius:9px;padding:9px 11px;font-size:13px;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.6)}
+#tip hr{border:0;border-top:1px solid var(--line);margin:6px 0}
+#tip .r{float:right;color:var(--gold)}#tip i{color:var(--mut)}
+#toasts{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px;z-index:150;max-width:340px;pointer-events:none}
+.toast{background:#2a190b;border:2px solid var(--gold);border-radius:9px;padding:8px 12px;font-size:14px;animation:tIn .35s ease-out;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.toast.drop{border-color:var(--rc);border-left-width:6px;padding:6px 10px;font-size:13px}
+.toast.drop>b{color:var(--rc);letter-spacing:1px}
+.toast small{color:var(--mut)}
+.tnew{background:var(--rc,var(--gold));color:#1a0e05;font-weight:bold;font-size:10px;padding:1px 6px;border-radius:10px}
+.toast.out{opacity:0;transform:translateX(40px);transition:.4s}
+@keyframes tIn{from{transform:translateX(60px);opacity:0}}
+.rb{background:linear-gradient(90deg,#ff5555,#ffaa00,#ffff55,#55ff55,#55ffff,#6f8cff,#ff55ff,#ff5555);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent;animation:rbm 2s linear infinite;text-shadow:none!important}
+@keyframes rbm{to{background-position:200% 0}}
+.golden{position:fixed;width:84px;height:84px;z-index:60;cursor:pointer;animation:gIn .5s ease-out,gwob 2.2s ease-in-out .5s infinite;filter:drop-shadow(0 0 16px #ffd54a)}
+.golden.out{transition:opacity .6s;opacity:0}
+@keyframes gIn{from{transform:scale(0) rotate(-180deg)}}
+@keyframes gwob{50%{transform:scale(1.12) rotate(10deg)}}
+.rain{position:fixed;top:-50px;font-size:30px;z-index:55;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(calc(100vh + 80px)) rotate(540deg)}}
+/* Drop-Animation im Skyblock-Stil: kein Kasten, kein Hintergrund, blockiert keine Klicks */
+#drop{position:fixed;left:0;right:0;top:50%;transform:translateY(-60%);display:none;flex-direction:column;align-items:center;text-align:center;z-index:120;pointer-events:none;padding:0 12px}
+#drop.go{display:flex}
+.dhead,.dname,.dsub{animation:dtxt var(--dd) ease-out both;font-weight:bold;text-shadow:0 0 12px var(--rc),0 2px 3px #000,0 0 4px #000}
+.dhead{font-size:calc(15px*var(--ds));letter-spacing:3px;color:#fff}
+.dname{font-size:calc(25px*var(--ds));color:var(--rc);margin:2px 0 4px}
+.dico{font-size:calc(min(92px,22vmin)*var(--ds));line-height:1.2;filter:drop-shadow(0 0 calc(14px*var(--ds)) var(--rc));animation:dspin var(--dd) cubic-bezier(.3,.7,.3,1) both;will-change:transform,opacity}
+.dico svg{width:1.15em;height:1.15em;display:block}
+.dsub{font-size:calc(15px*var(--ds));color:#55ffff;margin-top:4px;max-width:520px}
+.dhead.rb,.dname.rb{animation:dtxt var(--dd) ease-out both,rbm 2s linear infinite}
+@keyframes dspin{0%{transform:scale(0) rotate(-720deg);opacity:0}24%{transform:scale(1.18) rotate(0deg);opacity:1}32%{transform:scale(1) rotate(0deg);opacity:1}50%{transform:scale(1.1) rotate(0deg);opacity:1}68%{transform:scale(1) rotate(0deg);opacity:1}100%{transform:scale(0) rotate(720deg);opacity:0}}
+@keyframes dtxt{0%,14%{opacity:0;transform:translateY(10px) scale(.8)}28%,70%{opacity:1;transform:none}90%,100%{opacity:0;transform:scale(.8)}}
+/* Untere Navigation (nur Handy/Tablet hochkant) */
+#nav{display:none;flex:0 0 auto;background:#1b1007;border-top:2px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+#nav button{flex:1;min-width:0;background:none;border:0;color:var(--mut);font:inherit;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0;border-radius:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
+#nav button span{font-size:20px;line-height:1.1}
+#nav button.on{color:var(--gold);background:rgba(255,213,74,.12)}
+#nav button.dot::after{content:"";position:absolute;top:3px;right:22%;width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok)}
+@media(max-width:950px){
+ html,body{height:100%;overflow:hidden}
+ body{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:0}
+ header{flex:0 0 auto;height:auto;min-height:36px;padding:calc(4px + env(safe-area-inset-top)) 10px 4px;gap:8px}
+ header h1{font-size:16px}#ticker{font-size:12px}
+ main{display:flex;flex-direction:column;flex:1;min-height:0;height:auto;padding:6px;gap:6px}
+ section{max-height:none}
+ #left{flex:0 0 auto;padding:6px 8px 4px}
+ #bank{font-size:13px}#count{font-size:24px;margin-top:0}#count small{display:inline;font-size:13px;margin-left:6px}
+ #cpsl{font-size:12px;margin:2px 0}#buffs{min-height:0}#typeName{display:none}
+ #cwrap{width:min(23vh,54vw);width:min(23dvh,54vw);margin:2px auto}
+ #mid,#right{flex:1;min-height:0}
+ body[data-m=shop] #mid{display:none}
+ body:not([data-m=shop]) #right{display:none}
+ #right{display:flex;flex-direction:column;overflow:hidden}
+ #right>.st-h:first-child{display:none}
+ #right>.st-h{position:static;flex:0 0 auto;padding:5px 10px}
+ #ups{flex:0 0 auto;flex-wrap:nowrap;overflow-x:auto;padding:6px;border-bottom:1px solid var(--line)}
+ .up{flex:0 0 48px;height:48px}
+ #buildings{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+ .bld{padding:6px 10px}.bi{font-size:27px;width:36px}.bn{font-size:15px}.bo{font-size:23px}
+ #tabs{display:none}body[data-m=more] #tabs{display:flex}#tabs button:not(.mo){display:none}
+ #nav{display:flex}
+ #toasts{right:8px;bottom:calc(66px + env(safe-area-inset-bottom));max-width:80vw}
+ .toast{font-size:12px;padding:5px 9px}.toast:nth-last-child(n+4){display:none}
+ .grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}.card svg{width:56px;height:56px}
+}
+@media(max-width:950px) and (orientation:landscape) and (max-height:520px){
+ main{flex-direction:row}#left{flex:0 0 38%;justify-content:center}#cwrap{width:min(44vh,28vw);width:min(44dvh,28vw)}
+}
+</style>
+</head>
+<body>
+<header><h1>🧀 Käseclicker</h1><div id="ticker"></div></header>
+<main>
+<section id="left">
+ <div id="bank" title="Klicken zum Umbenennen"></div>
+ <div id="count">0<small>Käse</small></div>
+ <div id="cpsl"></div>
+ <div id="buffs"></div>
+ <div id="cwrap"><div id="rays"></div><div id="orbit"></div><button id="cheese" aria-label="Käse klicken"></button></div>
+ <div id="typeName"></div>
+</section>
+<section id="mid">
+ <div class="tabs" id="tabs"></div>
+ <div class="pane" id="p-tree"></div>
+ <div class="pane" id="p-types"></div>
+ <div class="pane" id="p-items"></div>
+ <div class="pane" id="p-ach"></div>
+ <div class="pane" id="p-stats"></div>
+ <div class="pane" id="p-pres"></div>
+ <div class="pane" id="p-opt"></div>
+</section>
+<section id="right">
+ <div class="st-h">Kaufbare Upgrades</div>
+ <div id="ups"></div>
+ <div class="st-h">Gebäude <span class="amt" id="amt"></span></div>
+ <div id="buildings"></div>
+</section>
+</main>
+<nav id="nav"></nav>
+<div id="tip"></div><div id="toasts"></div><div id="drop"></div>
+<script>
+'use strict';
+/*ECON-START*/
+const KEY='kaeseclicker_save_v3';
+const SUF=['','Tsd.','Mio.','Mrd.','Bio.','Brd.','Trio.','Trd.','Quadr.','Quadrd.','Quint.','Quintd.','Sext.','Sextd.','Sept.','Septd.'];
+function fmt(n){
+ if(!isFinite(n))return '∞';
+ if(n<1000)return (n<100&&n%1)?n.toFixed(1).replace('.',','):String(Math.floor(n));
+ if(n<1e6)return Math.floor(n).toLocaleString('de-DE');
+ const i=Math.floor(Math.log10(n)/3);
+ if(i>=SUF.length)return n.toExponential(2).replace('.',',');
+ return (n/Math.pow(10,3*i)).toFixed(2).replace('.',',')+' '+SUF[i];
+}
+function dez(x){return String(x).replace('.',',');}
+function fmtTime(s){s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return (h?h+' Std. ':'')+(m?m+' Min. ':'')+(s%60)+' Sek.';}
+function rng(seed){let s=seed%233280;return()=>{s=(s*9301+49297)%233280;return s/233280;};}
+
+/* ================= DATEN ================= */
+const BUILDINGS=[
+{id:'maus',name:'Käsemaus',icon:'🐭',base:15,desc:'Knabbert sich durch die Vorratskammer und bringt dir brav etwas mit.'},
+{id:'oma',name:'Käse-Oma',icon:'👵',base:100,desc:'Macht Käse nach geheimem Familienrezept. Fragt, ob du genug isst.'},
+{id:'ziege',name:'Ziege',icon:'🐐',base:1100,desc:'Liefert Milch für würzigen Ziegenkäse. Frisst gern Schnürsenkel.'},
+{id:'kuh',name:'Milchkuh',icon:'🐄',base:12000,desc:'Glückliche Kühe, glücklicher Käse.'},
+{id:'alm',name:'Almhütte',icon:'🏔️',base:130000,desc:'Hoch oben in den Bergen reift der beste Bergkäse.'},
+{id:'hof',name:'Hofkäserei',icon:'🏡',base:1.4e6,desc:'Ein ganzer Bauernhof, nur für Käse.'},
+{id:'keller',name:'Reifekeller',icon:'🕯️',base:2e7,desc:'Dunkel, kühl, feucht – perfekt zum Reifen.'},
+{id:'fabrik',name:'Käsefabrik',icon:'🏭',base:3.3e8,desc:'Laibe am laufenden Band.'},
+{id:'frachter',name:'Käsefrachter',icon:'🚢',base:5.1e9,desc:'Importiert exotische Käsesorten aus aller Welt.'},
+{id:'labor',name:'Käselabor',icon:'🧪',base:7.5e10,desc:'Wissenschaftler suchen die Formel für den perfekten Käse.'},
+{id:'ki',name:'KI-Käsemeister',icon:'🤖',base:1e12,desc:'Ein neuronales Netz, trainiert auf 40 Mio. Rezepten. Halluziniert manchmal Fondue.'},
+{id:'tempel',name:'Käsetempel',icon:'⛩️',base:1.4e13,desc:'Mönche beten zum Großen Laib.'},
+{id:'mond',name:'Mond-Käsemine',icon:'🌕',base:1.7e14,desc:'Es stimmt also doch: Der Mond ist aus Käse.'},
+{id:'portal',name:'Käseportal',icon:'🌀',base:2.1e15,desc:'Öffnet ein Tor zur Käsedimension.'},
+{id:'zeit',name:'Zeitkäserei',icon:'⏳',base:2.6e16,desc:'Holt perfekt gereiften Käse aus der Zukunft.'},
+{id:'quanten',name:'Quantenkäse',icon:'⚛️',base:3.1e17,desc:'Ist gleichzeitig Gouda und nicht Gouda.'},
+{id:'versum',name:'Käseversum',icon:'🌌',base:7.1e18,desc:'Ein ganzes Universum, nur aus Käse.'}
+];
+/* Produktion: Amortisationszeit wächst pro Gebäudestufe gleichmäßig (statt sprunghaft) */
+const PAY0=65,PAYG=1.28;
+BUILDINGS.forEach((b,i)=>{b.cps=i?Number((b.base/(PAY0*Math.pow(PAYG,i))).toPrecision(2)):.1;});
+const BLD={};BUILDINGS.forEach(b=>BLD[b.id]=b);
+
+const TYPES=[
+{id:'gouda',name:'Gouda',color:'#ffcf3f',rind:'#e8a317',holes:3,h:44,req:0,bonus:{}},
+{id:'emmentaler',name:'Emmentaler',color:'#fbe7a1',rind:'#e3c066',holes:9,sideHoles:6,h:50,req:1e3,bonus:{click:.25}},
+{id:'brie',name:'Brie',color:'#fff6dc',rind:'#efe6cf',holes:0,h:18,req:5e4,bonus:{gold:.2}},
+{id:'camembert',name:'Camembert',color:'#fdebb8',rind:'#e9e0c8',holes:0,h:26,req:5e5,bonus:{cps:.1}},
+{id:'cheddar',name:'Cheddar',color:'#f59a23',rind:'#c46a0c',holes:0,h:58,req:5e6,bonus:{cps:.15}},
+{id:'feta',name:'Feta',color:'#fbfbf4',rind:'#e1e1d4',side:'#cbcbbd',shape:'block',holes:5,req:5e7,bonus:{luck:.3}},
+{id:'mozzarella',name:'Mozzarella',color:'#fffdf4',rind:'#e6dfc8',shape:'ball',req:5e8,bonus:{click:1}},
+{id:'raclette',name:'Raclette',color:'#f8d36a',rind:'#b5742a',holes:2,h:40,req:5e9,bonus:{cps:.25}},
+{id:'parmesan',name:'Parmesan',color:'#f1d58c',rind:'#c4943a',holes:0,h:72,req:5e10,bonus:{cost:.05}},
+{id:'roquefort',name:'Roquefort',color:'#eef0e2',rind:'#d2d4c0',veins:1,h:46,req:5e11,bonus:{luck:.5,mf:15}},
+{id:'appenzeller',name:'Appenzeller',color:'#f6dc7c',rind:'#8d5a2b',holes:4,h:48,req:1e13,bonus:{cps:.4}},
+{id:'gruyere',name:'Gruyère',color:'#f3cf6a',rind:'#9c6a2c',holes:1,h:54,req:1e14,bonus:{click:2,cps:.2}},
+{id:'mond',name:'Mondkäse',color:'#e2e6f0',rind:'#8f98ab',holes:10,h:46,glow:1,req:1e16,bonus:{cps:.5,luck:.5,mf:25}},
+{id:'stern',name:'Sternenkäse',color:'#c9a8ff',rind:'#6c43b8',holes:3,h:46,glow:1,stars:1,req:1e19,bonus:{cps:.8,click:1,luck:1,gold:.5,mf:50}}
+];
+TYPES.forEach((t,i)=>t.seed=i+3);
+const TYPE={};TYPES.forEach(t=>TYPE[t.id]=t);
+
+/* Seltenheiten wie in Skyblock. w = Grundgewicht in % pro Drop. Magic Find erhöht die Gewichte ab RARE. */
+const RAR={
+ c:{n:'COMMON',col:'#ffffff',w:52},
+ u:{n:'UNCOMMON',col:'#55ff55',w:27},
+ r:{n:'RARE',col:'#6f8cff',w:13},
+ e:{n:'EPIC',col:'#c45cff',w:5.5},
+ l:{n:'LEGENDARY',col:'#ffaa00',w:2},
+ x:{n:'CRAZY RARE',col:'#ff55ff',w:.45},
+ g:{n:'RNG INCARNATE',col:'#ff5555',w:.05}
+};
+const RKEYS=Object.keys(RAR);
+const ITEMS=[
+{id:'messer',r:'c',icon:'🔪',name:'Rostiges Käsemesser',desc:'Schneidet kaum noch, aber mit Herz.',bonus:{click:.05}},
+{id:'socke',r:'c',icon:'🧦',name:'Stinkesocke',desc:'Riecht verdächtig nach Limburger.',bonus:{cps:.02}},
+{id:'falle',r:'c',icon:'🪤',name:'Alte Mausefalle',desc:'Deine Mäuse haben sie zum Fitnessgerät umfunktioniert.',bonus:{cps:.02}},
+{id:'brett',r:'c',icon:'🪵',name:'Eichen-Käsebrett',desc:'Solide Handwerkskunst.',bonus:{cps:.03}},
+{id:'cracker',r:'c',icon:'🍘',name:'Halber Cracker',desc:'Wo ist die andere Hälfte?',bonus:{click:.08}},
+{id:'papier',r:'c',icon:'📄',name:'Wachspapier',desc:'Hält frisch. Spart Geld.',bonus:{cost:.01}},
+{id:'reibe',r:'u',icon:'⚙️',name:'Goldene Käsereibe',desc:'Reibt Käse – und Konkurrenten.',bonus:{click:.12}},
+{id:'buch',r:'u',icon:'📖',name:'Omas Rezeptbuch',desc:'Seite 47 ist mit Fondue verklebt.',bonus:{cps:.05}},
+{id:'stanze',r:'u',icon:'🕳️',name:'Schweizer Lochstanze',desc:'Macht Löcher. Präzise.',bonus:{click:.15,cps:.02}},
+{id:'klee',r:'u',icon:'🍀',name:'Glücksklee',desc:'Vier Blätter, unendlich Käse.',bonus:{luck:.1,mf:3}},
+{id:'schuerze',r:'u',icon:'🥼',name:'Käserschürze',desc:'Fleckenlos. Noch.',bonus:{cps:.04,click:.05}},
+{id:'lupe',r:'u',icon:'🔍',name:'Käselupe',desc:'Findet Krümel, die sonst keiner sieht.',bonus:{mf:5}},
+{id:'fondue',r:'r',icon:'🫕',name:'Fondue-Topf',desc:'Wer sein Brot verliert, muss abwaschen.',bonus:{cps:.07}},
+{id:'harfe',r:'r',icon:'🪕',name:'Käseharfe',desc:'Damit schneiden Profis Käsebruch.',bonus:{cps:.05,gold:.05}},
+{id:'rad',r:'r',icon:'🛞',name:'Käserad',desc:'Rollt von ganz allein bergab.',bonus:{cps:.06,click:.1}},
+{id:'karte',r:'r',icon:'🗺️',name:'Schatzkarte',desc:'X markiert den Käse.',bonus:{mf:10,luck:.1}},
+{id:'glocke',r:'e',icon:'🔔',name:'Kristall-Käseglocke',desc:'Schützt Käse vor allem Bösen.',bonus:{cps:.12}},
+{id:'kompass',r:'e',icon:'🧭',name:'Käsekompass',desc:'Zeigt immer zum nächsten Goldkäse.',bonus:{gold:.2}},
+{id:'elixier',r:'e',icon:'⚗️',name:'Laktose-Elixier',desc:'Schmeckt nach Milch und Macht.',bonus:{cps:.1,click:.15}},
+{id:'uhr',r:'e',icon:'⌚',name:'Uhr des Reifemeisters',desc:'Lässt Käse schneller reifen.',bonus:{cps:.1,gold:.1}},
+{id:'amulett',r:'e',icon:'📿',name:'Amulett der Ziege',desc:'Meeeeh.',bonus:{luck:.25,mf:10}},
+{id:'krone',r:'l',icon:'👑',name:'Krone des Käsekönigs',desc:'Schwer ist das Haupt, das den Käse trägt.',bonus:{cps:.25}},
+{id:'laib',r:'l',icon:'♾️',name:'Der Ewige Laib',desc:'Wird niemals alle.',bonus:{cps:.2,click:.3}},
+{id:'splitter',r:'l',icon:'🌙',name:'Mondkäse-Splitter',desc:'Leuchtet nachts schwach gelb.',bonus:{luck:.4,mf:20}},
+{id:'excalibrie',r:'l',icon:'🗡️',name:'Excalibrie',desc:'Das Schwert im Brie. Nur Auserwählte ziehen es.',bonus:{click:.8}},
+{id:'handschuh',r:'x',icon:'🧤',name:'Florians goldener Handschuh',desc:'Wer ihn trägt, hat den Touch.',bonus:{click:1.5,cps:.1}},
+{id:'wuerfel',r:'x',icon:'🎲',name:'Olivers Schicksalswürfel',desc:'Zeigt immer die Zahl, die das Schicksal will.',bonus:{luck:.75,gold:.4,mf:25}},
+{id:'kristall',r:'x',icon:'💎',name:'Laktose-Kristall',desc:'Funkelt in allen Farben eines Käsebretts.',bonus:{cps:.4,mf:30}},
+{id:'urkaese',r:'g',icon:'🧀',name:'Der Ur-Käse',desc:'Der erste Käse des Universums. Aus ihm entstand alles.',bonus:{cps:1}},
+{id:'auge',r:'g',icon:'👁️',name:'Auge des RNGesus',desc:'Es hat dich gesehen. Und für würdig befunden.',bonus:{mf:75,luck:1}}
+];
+const ITEM={};ITEMS.forEach(i=>ITEM[i.id]=i);
+const BN={cps:'Produktion',click:'Klickkraft',luck:'Item-Chance',gold:'Goldkäse-Häufigkeit',cost:'Gebäudekosten'};
+function bonusText(b){return Object.keys(b||{}).map(k=>k==='mf'?'+'+Math.round(b[k])+' ✯ Magic Find':(k==='cost'?'−':'+')+Math.round(b[k]*100)+'% '+BN[k]).join(', ');}
+
+/* ================= UPGRADE-BAUM ================= */
+const BRANCHES=[],BRANCH={},NODES=[],NODE={};
+function addBranch(id,name,icon,sec,from,extra){const b=Object.assign({id,name,icon,sec,from,nodes:[]},extra||{});BRANCHES.push(b);BRANCH[id]=b;return b;}
+function addNode(br,n){const b=BRANCH[br];n.br=br;
+ n.parents=n.parents||(b.nodes.length?[b.nodes[b.nodes.length-1].id]:(b.from?[b.from]:[]));
+ n.req=n.req||(()=>true);n.reqText=n.reqText||'';n.eff=n.eff||{};b.nodes.push(n);NODES.push(n);NODE[n.id]=n;}
+const RQ={
+ clicks:n=>[()=>S.clicks>=n,'Klicke '+fmt(n)+'-mal auf den Käse'],
+ all:n=>[()=>S.allTime>=n,'Insgesamt '+fmt(n)+' Käse produziert'],
+ own:(id,n)=>[()=>(S.b[id]||0)>=n,'Besitze '+n+'× '+BLD[id].name],
+ items:n=>[()=>S.itemsFound>=n,'Finde '+n+' Item'+(n>1?'s':'')],
+ gold:n=>[()=>S.goldClicks>=n,'Klicke '+n+' Goldkäse']
+};
+function mk(br,id,name,icon,cost,rq,eff,desc,extra){addNode(br,Object.assign({id,name,icon,cost,req:rq[0],reqText:rq[1],eff,desc},extra||{}));}
+
+addBranch('klick','Klickkraft','👆','Klicken',null);
+mk('klick','k0','Stärkere Finger','👆',100,RQ.clicks(10),{click:1},'Klickkraft +100%.');
+mk('klick','k1','Käsehobel-Technik','🔪',2000,RQ.clicks(100),{click:1},'Klickkraft +100%.');
+mk('klick','k2','Doppelklick-Diplom','🎓',5e4,RQ.clicks(500),{clickCps:.005},'Jeder Klick bringt zusätzlich 0,5% deiner KpS.');
+mk('klick','k3','Tausend Mäuse','🐁',1e5,RQ.own('maus',25),{mausBonus:.1},'Klicks bringen +0,1 Käse für jedes Gebäude, das keine Käsemaus ist.');
+mk('klick','k4','Klick-Handschuhe','🥊',1e7,RQ.clicks(1500),{click:2},'Klickkraft +200%.');
+mk('klick','k5','Millionen Mäuse','🐁',1e8,RQ.own('maus',50),{mausBonus:.5},'Klicks bringen +0,5 Käse für jedes Gebäude, das keine Käsemaus ist.');
+mk('klick','k6','Käsefinger aus Titan','🦾',1e10,RQ.clicks(3000),{clickCps:.005},'Jeder Klick bringt zusätzlich 0,5% deiner KpS.');
+mk('klick','k7','Milliarden Mäuse','🐁',1e12,RQ.own('maus',100),{mausBonus:5},'Klicks bringen +5 Käse für jedes Gebäude, das keine Käsemaus ist.');
+mk('klick','k8','Klick der Götter','⚡',1e14,RQ.clicks(6000),{click:3,clickCps:.01},'Klickkraft +300% und jeder Klick bringt zusätzlich 1% deiner KpS.');
+
+addBranch('cursor','Cursor','🖱️','Klicken','k1',{note:'Jede Stufe gibt deinem Mauszeiger eine neue Textur. Gekaufte Cursor anklicken zum Wechseln. Autoklicks zählen mit halber Klickkraft.'});
+mk('cursor','cu0','Holz-Cursor','',5000,RQ.clicks(150),{tex:'holz',click:.5},'Klickkraft +50%.');
+mk('cursor','cu1','Stein-Cursor','',2.5e5,RQ.clicks(400),{tex:'stein',auto:1},'Klickt 1× pro Sekunde automatisch.');
+mk('cursor','cu2','Eisen-Cursor','',5e6,RQ.clicks(1000),{tex:'eisen',click:1,auto:1},'Klickkraft +100% und +1 Autoklick pro Sekunde.');
+mk('cursor','cu3','Gold-Cursor','',5e8,RQ.clicks(2000),{tex:'gold',auto:1,gold:.1},'+1 Autoklick pro Sekunde, Goldkäse 10% häufiger.');
+mk('cursor','cu4','Diamant-Cursor','',5e10,RQ.clicks(4000),{tex:'diamant',clickCps:.005,auto:1},'+1 Autoklick pro Sekunde, jeder Klick bringt zusätzlich 0,5% deiner KpS.');
+mk('cursor','cu5','Käse-Cursor','',5e12,RQ.clicks(7000),{tex:'kaese',click:2,mf:15},'Klickkraft +200% und +15 ✯ Magic Find.');
+mk('cursor','cu6','Kosmischer Cursor','',5e15,RQ.clicks(12000),{tex:'kosmos',auto:2,clickCps:.01},'+2 Autoklicks pro Sekunde, jeder Klick bringt zusätzlich 1% deiner KpS.');
+
+addBranch('prod','Reifekunst','🏭','Produktion',null,{note:'Jede Stufe erhöht die gesamte Produktion. Die Boni addieren sich.'});
+[['p0','Salzlake','🧂',5e3,.1],['p1','Naturrinde','🌿',5e4,.1],['p2','Käseglocke','🛎️',5e5,.15],['p3','Bio-Siegel','🌱',5e6,.15],['p4','Gütesiegel','🏅',5e7,.2],['p5','Michelin-Stern','⭐',5e8,.25],
+ ['p6','Käse-Sommelier','🍷',5e9,.3],['p7','UNESCO-Kulturerbe','🏛️',5e10,.35],['p8','Käsekonsortium','💼',5e11,.4],['p9','Weltkäsetag','🌍',5e12,.5],['p10','Interstellare Reifung','🚀',5e14,.75],['p11','Käse-Singularität','🕳️',5e17,1]]
+ .forEach(([id,n,ic,c,v])=>mk('prod',id,n,ic,c,RQ.all(c*.4),{prod:v},'Gesamte Produktion +'+Math.round(v*100)+'%.'));
+
+addBranch('gluck','Magic Find','🍀','Magic Find','p1',{note:'Item-Chance = wie oft etwas droppt (höchstens 1% pro Klick). ✯ Magic Find = wie oft es RARE oder besser ist.'});
+mk('gluck','l0','Hufeisen','🧲',1e5,RQ.items(1),{luck:.3},'Item-Chance +30%.');
+mk('gluck','l1','Käselupe des Sammlers','🔎',1e6,RQ.items(3),{mf:10},'+10 ✯ Magic Find.');
+mk('gluck','l2','Glückskäse','🍀',1e8,RQ.items(5),{luck:.3},'Item-Chance +30%.');
+mk('gluck','l3','Schatzjäger-Instinkt','🏴‍☠️',1e9,RQ.items(10),{mf:20},'+20 ✯ Magic Find.');
+mk('gluck','l4','Sternschnuppen-Rinde','💫',1e11,RQ.items(15),{luck:.5},'Item-Chance +50%.');
+mk('gluck','l5','Auge für Seltenes','🧿',1e13,RQ.items(25),{mf:40},'+40 ✯ Magic Find.');
+mk('gluck','l6','Gebet an RNGesus','🙏',1e16,RQ.items(40),{mf:75},'+75 ✯ Magic Find.');
+
+addBranch('goldb','Goldkäse','✨','Magic Find','p1',{note:'Goldkäse erscheint höchstens alle 30 Sekunden.'});
+mk('goldb','o0','Goldgräber-Nase','👃',7777,RQ.gold(1),{gold:.2},'Goldkäse erscheint 20% häufiger.');
+mk('goldb','o1','Käse-Radar','📡',7.77e6,RQ.gold(7),{gold:.2},'Goldkäse erscheint 20% häufiger.');
+mk('goldb','o2','Zähflüssiges Gold','🍯',7.77e8,RQ.gold(27),{goldDur:.5},'Goldkäse und seine Effekte halten 50% länger.');
+mk('goldb','o3','Goldene Fügung','🌟',7.77e11,RQ.gold(77),{gold:.25,goldDur:.2},'Goldkäse 25% häufiger, Effekte 20% länger.');
+
+addBranch('spez','Legenden','⭐','Legenden',null,{note:'Florian zweigt aus der Klickkraft ab, Oliver aus dem Glück – vereint ergeben sie die Bromance.'});
+mk('spez','florian','Florians Touch','✋',77777,RQ.clicks(300),{click:2,clickCps:.01,florian:1},
+ 'Florian legt Hand an. Klickkraft +200%, jeder Klick bringt zusätzlich 1% deiner KpS – und mit 1% Chance pro Klick erscheint ein Goldkäse.',{special:1,parents:['k2']});
+mk('spez','oliver','Olivers Destiny','🔮',777777,[()=>S.itemsFound>=1&&S.allTime>=1e5,'Finde 1 Item und produziere insgesamt 100.000 Käse'],{luck:1,gold:.5,goldDur:.3,prod:.25,mf:25},
+ 'Oliver hat es kommen sehen. Item-Chance +100%, Goldkäse 50% häufiger und 30% länger, Produktion +25%, +25 ✯ Magic Find.',{special:1,parents:['l0']});
+mk('spez','bromance','Florian & Oliver: Bromance','🤝',7.77e9,[()=>true,''],{prod:.5,luck:.5,click:1,mf:50},
+ 'Touch trifft Destiny. Produktion +50%, Item-Chance +50%, Klickkraft +100%, +50 ✯ Magic Find.',{special:1,parents:['florian','oliver']});
+
+const BT=[[10,30,.5],[25,300,.5],[50,5e3,1],[100,1e6,1],[150,5e8,1.5]];
+const TN=['Frisch gemacht','Gut gereift','Extra würzig','Meisterhaft','Göttlich'];
+BUILDINGS.forEach(b=>{addBranch('b_'+b.id,b.name,b.icon,'Gebäude-Pfade',null,{bld:b.id});
+ BT.forEach(([n,c,mult],i)=>{const mc=b.id==='maus'&&i<2;
+  mk('b_'+b.id,b.id+'_'+i,b.name+': '+TN[i],b.icon,b.base*c,RQ.own(b.id,n),mc?{b:b.id,add:mult,click:.5}:{b:b.id,add:mult},
+   'Effizienz von '+b.name+' +'+Math.round(mult*100)+'%.'+(mc?' Klickkraft +50%.':''),{tier:i+1});});});
+
+/* ================= REBIRTH ================= */
+const RB=5e9;
+/* Bonus wächst logarithmisch: frühe Weisheit zählt viel, später flacht er ab */
+function rbMult(w){return 1+2*Math.log(1+w/5);}
+function rbMF(w){return Math.floor(8*Math.log(1+w));}
+function presTotal(){return Math.floor(Math.cbrt(S.allTime/RB));}
+function presGain(){return Math.max(0,presTotal()-S.prestige);}
+
+/* ================= ZUSTAND ================= */
+const DEF=()=>({name:'Meine Käserei',cheese:0,total:0,allTime:0,clicks:0,autoClicks:0,handmade:0,b:{},up:{},items:{},ach:{},types:{gouda:1},type:'gouda',cursor:'none',prestige:0,resets:0,goldClicks:0,itemsFound:0,rarFound:{},start:Date.now(),last:Date.now()});
+let S=DEF(),M={};
+
+/* Alle Boni einer Kategorie werden ADDIERT und dann genau einmal angewendet. Nur Rebirth ist ein eigener Faktor. */
+const CAP={clickCps:.05,item:.01,goldDur:2,mf:400,cost:.25,goldMin:30};
+const SUMK=['prod','click','clickCps','luck','gold','goldDur','mausBonus','mf','auto','cost'];
+function recalc(){
+ const m={b:{},florian:false};SUMK.forEach(k=>m[k]=0);
+ BUILDINGS.forEach(b=>m.b[b.id]=1);
+ const add=e=>{SUMK.forEach(k=>{if(e[k])m[k]+=e[k];});if(e.cps)m.prod+=e.cps;};
+ for(const id in S.up){const n=NODE[id];if(!n)continue;const e=n.eff;if(e.b)m.b[e.b]+=e.add;add(e);if(e.florian)m.florian=true;}
+ for(const id in S.items){const it=ITEM[id];if(it)add(it.bonus);}   /* Duplikate geben keinen Extra-Bonus */
+ add((TYPE[S.type]||TYPE.gouda).bonus);
+ m.prod+=.05*(Object.keys(S.types).length-1)+.01*Object.keys(S.ach).length;
+ m.rb=rbMult(S.prestige);
+ m.global=(1+m.prod)*m.rb;
+ m.clickMult=1+m.click;
+ m.clickCps=Math.min(CAP.clickCps,m.clickCps);
+ m.luck=1+m.luck;m.gold=1+m.gold;
+ m.goldDur=Math.min(CAP.goldDur,1+m.goldDur);
+ m.mf=Math.min(CAP.mf,m.mf+rbMF(S.prestige));
+ m.cost=1-Math.min(CAP.cost,m.cost);
+ let raw=0;BUILDINGS.forEach(b=>raw+=b.cps*m.b[b.id]*(S.b[b.id]||0));
+ m.raw=raw;M=m;
+}
+let buffs=[];
+function buffMult(type){const b=buffs.find(x=>x.type===type);return b?b.mult:1;}
+function baseCps(){return (M.raw||0)*M.global;}
+function cps(){return baseCps()*buffMult('cps');}
+function totalB(){let n=0;for(const k in S.b)n+=S.b[k];return n;}
+/* Der KpS-Anteil eines Klicks nutzt die Produktion OHNE Käserausch – Buffs multiplizieren sich nicht gegenseitig */
+function clickPower(){const base=1+M.mausBonus*(totalB()-(S.b.maus||0));return (base*M.clickMult+baseCps()*M.clickCps)*buffMult('click');}
+function itemChance(){return Math.min(CAP.item,.002*M.luck);}
+function bCost(b,n){const o=S.b[b.id]||0;return b.base*Math.pow(1.15,o)*(Math.pow(1.15,n)-1)/.15*M.cost;}
+function gain(v){S.cheese+=v;S.total+=v;S.allTime+=v;}
+function nodeState(n){if(S.up[n.id])return 'own';if(!n.parents.every(p=>S.up[p]))return 'lock';if(!n.req())return 'req';return 'av';}
+/* Wahrscheinlichkeit je Seltenheit (in %) unter Berücksichtigung von Magic Find */
+function rarWeights(min){const i0=RKEYS.indexOf(min||'c'),mf=1+(M.mf||0)/100;
+ return RKEYS.map((k,i)=>i<i0?0:RAR[k].w*(i>=2?mf:1));}
+function rarProbs(min){const w=rarWeights(min),t=w.reduce((a,b)=>a+b,0);return w.map(x=>x/t);}
+
+/* ---------- Erfolge ---------- */
+const ACH=[];
+function addAch(id,name,desc,icon,cond){ACH.push({id,name,desc,icon,cond});}
+[[1,'Erster Krümel'],[1e3,'Käsehäppchen'],[1e5,'Käseplatte'],[1e6,'Käsemillionär'],[1e8,'Käsebaron'],[1e9,'Käsemilliardär'],[1e11,'Käsemagnat'],[1e12,'Käsebillionär'],[1e14,'Käseimperium'],[1e15,'Käsegott'],[1e18,'Kosmischer Käse'],[1e21,'Jenseits des Laibs']]
+ .forEach(([n,nm],i)=>addAch('t'+i,nm,'Produziere insgesamt '+fmt(n)+' Käse.','🧀',()=>S.allTime>=n));
+[[1,'Erster Klick'],[100,'Fingerübung'],[1000,'Klickmaschine'],[5000,'Sehnenscheiden-Alarm'],[25000,'Klickgott'],[100000,'Unaufhaltsam']]
+ .forEach(([n,nm],i)=>addAch('c'+i,nm,'Klicke '+fmt(n)+'-mal auf den Käse.','👆',()=>S.clicks>=n));
+[[1,'Es tröpfelt'],[10,'Bächlein'],[100,'Käsefluss'],[1e3,'Käsestrom'],[1e4,'Käseflut'],[1e5,'Käsetsunami'],[1e6,'Käse-Monsun'],[1e8,'Käse-Urknall'],[1e10,'Käse-Supernova'],[1e12,'Käse-Unendlichkeit']]
+ .forEach(([n,nm],i)=>addAch('p'+i,nm,'Erreiche '+fmt(n)+' Käse pro Sekunde.','📈',()=>cps()>=n));
+BUILDINGS.forEach(b=>[[1,''],[50,' Profi'],[100,' Meister'],[200,' Legende']].forEach(([n,s],i)=>addAch(b.id+'a'+i,b.name+s,'Besitze '+n+'× '+b.name+'.',b.icon,()=>(S.b[b.id]||0)>=n)));
+[[1,'Schatzsucher'],[10,'Sammler'],[25,'Hamsterer'],[50,'Museum'],[100,'Drachenhort']].forEach(([n,nm],i)=>addAch('i'+i,nm,'Finde '+n+' Items.','🎁',()=>S.itemsFound>=n));
+RKEYS.forEach(k=>addAch('r'+k,'Erster '+RAR[k].n+'-Fund','Finde ein Item der Seltenheit '+RAR[k].n+'.','💠',()=>S.rarFound[k]));
+addAch('iall','Komplettist','Finde jedes Item mindestens einmal.','🏺',()=>ITEMS.every(i=>S.items[i.id]));
+[[50,'Schatzspürnase'],[150,'Glückspilz'],[400,'Auserwählt von RNGesus']].forEach(([n,nm],i)=>addAch('mf'+i,nm,'Erreiche '+n+' ✯ Magic Find.','✯',()=>(M.mf||0)>=n));
+[[1,'Goldfinger'],[7,'Goldrausch'],[27,'Goldjunge'],[77,'Midas'],[177,'Goldene Ära']].forEach(([n,nm],i)=>addAch('g'+i,nm,'Klicke '+n+' Goldkäse.','✨',()=>S.goldClicks>=n));
+[[3,'Käsekenner'],[7,'Käsesommelier'],[TYPES.length,'Alle Käse dieser Welt']].forEach(([n,nm],i)=>addAch('y'+i,nm,'Schalte '+n+' Käsearten frei.','🧀',()=>Object.keys(S.types).length>=n));
+addAch('cu1','Neuer Look','Kaufe deinen ersten Cursor.','🖱️',()=>S.up.cu0);
+addAch('cu2','Kosmischer Klicker','Kaufe den Kosmischen Cursor.','🌌',()=>S.up.cu6);
+addAch('fl','Florians Fan','Kaufe Florians Touch.','✋',()=>S.up.florian);
+addAch('ol','Vom Schicksal geküsst','Kaufe Olivers Destiny.','🔮',()=>S.up.oliver);
+addAch('br','Bromance','Vereine Florian und Oliver.','🤝',()=>S.up.bromance);
+[[1,'Neubeginn'],[10,'Weise'],[100,'Erleuchtet']].forEach(([n,nm],i)=>addAch('pr'+i,nm,'Erreiche '+n+' Käseweisheit.','🌟',()=>S.prestige>=n));
+/*ECON-END*/
+
+const $=s=>document.querySelector(s);
+const GOLDT={color:'#ffd700',rind:'#cf9b00',holes:4,h:40,seed:42,glow:1};
+const NEWS=[
+'Florian wurde gesichtet, wie er einen Gouda streichelte. Der Gouda verdoppelte sich.',
+'Oliver würfelte eine 7 auf einem sechsseitigen Würfel. Experten sprechen von Schicksal.',
+'Wissenschaftler bestätigen: Der Mond besteht zu 87 % aus Käse.',
+'Mäusegewerkschaft fordert bessere Arbeitsbedingungen und mehr Emmentaler.',
+'Örtliche Oma behauptet, ihr Rezept sei älter als das Internet.',
+'Käsepreise steigen nach mysteriösem Klick-Phänomen.',
+'Studie: 9 von 10 Ziegen bevorzugen Käse. Die zehnte frisst den Fragebogen.',
+'KI-Käsemeister halluziniert neues Rezept: Fondue aus Licht.',
+'Eilmeldung: Löcher im Emmentaler wurden gezählt. Es sind mehr als gedacht.',
+'Florians Touch angeblich wirksamer als jede Melkmaschine.',
+'Oliver: „Ich wusste, dass das passieren würde." Niemand weiß, was er meint.',
+'Käsebörse: Camembert verliert, Cheddar legt kräftig zu.',
+'Raclette-Abend eskaliert. Polizei bittet um Schmelz-Disziplin.',
+'Archäologen finden 3000 Jahre alten Käse. Er schmeckt „ganz okay".',
+'Neue Studie: Klicken auf Käse hebt die Laune um 400 %.',
+'Käseportal geöffnet. Es riecht verdächtig nach Roquefort.',
+'Parmesan ab sofort offizielles Zahlungsmittel.',
+'Zeitreisender warnt: „Kauft mehr Mäuse!"',
+'Die Schweiz meldet Rekordernte an Löchern.',
+'Philosophen streiten: Ist ein Käse ohne Loch noch Emmentaler?',
+'Gerücht: Wer Florian und Oliver vereint, wird unaufhaltsam.',
+'Mozzarella-Ball aus Labor entkommen. Sichtungen in ganz Italien.',
+'Käse-Influencer knackt 1 Mio. Follower mit Video eines Brie.',
+'Kuh gibt Interview: „Muh." Experten deuten es als Zustimmung.',
+'CRAZY RARE DROP! Käser findet Laktose-Kristall in seinem Frühstück.',
+'Sekte der RNGesus-Anbeter wächst. Mitglieder schwören auf Magic Find.',
+'Schmied verkauft Diamant-Cursor. Kunden klicken seitdem 30 % glücklicher.'
+];
+
+let buyAmt=1,goldTimer=40+Math.random()*60,lastGold=0,dropQ=[],dropBusy=false,activeTab='tree',mTab='shop',moreTab='stats',autoAcc=0;
+const dirty={types:1,items:1,ach:1};
+
+function load(){
+ try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(DEF(),JSON.parse(raw));}catch(e){S=DEF();}
+ sanitize();
+}
+function sanitize(){
+ const up={};for(const id in S.up)if(NODE[id])up[id]=1;S.up=up;
+ const it={};for(const id in S.items)if(ITEM[id])it[id]=S.items[id];S.items=it;
+ S.rarFound={};let n=0;for(const id in S.items){S.rarFound[ITEM[id].r]=1;n+=S.items[id];}S.itemsFound=Math.max(+S.itemsFound||0,n);
+ if(!TYPE[S.type]||!S.types[S.type])S.type='gouda';
+ if(!ownsTex(S.cursor))S.cursor='none';
+}
+function save(){S.last=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ================= KÄSE-GRAFIK ================= */
+function cheeseSVG(t,uid){
+ const g='hl'+uid,R=rng((t.seed||1)*7919+13);
+ let s='<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="'+g+'" cx="35%" cy="25%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>';
+ if(t.glow)s+='<circle cx="100" cy="100" r="97" fill="'+t.color+'" opacity=".2"/><circle cx="100" cy="100" r="82" fill="'+t.color+'" opacity=".15"/>';
+ if(t.shape==='ball'){
+  s+='<ellipse cx="100" cy="180" rx="58" ry="10" fill="#000" opacity=".25"/><circle cx="100" cy="102" r="76" fill="'+t.color+'" stroke="'+t.rind+'" stroke-width="3"/><path d="M62 74 Q100 54 138 74" stroke="'+t.rind+'" stroke-width="3" fill="none" opacity=".6"/><circle cx="100" cy="102" r="76" fill="url(#'+g+')"/>';
+ }else if(t.shape==='block'){
+  s+='<polygon points="100,28 182,68 100,108 18,68" fill="'+t.color+'"/><polygon points="18,68 100,108 100,180 18,140" fill="'+t.rind+'"/><polygon points="182,68 100,108 100,180 182,140" fill="'+(t.side||t.rind)+'"/>';
+  for(let i=0;i<(t.holes||0);i++){const x=60+R()*80,y=58+R()*22,rx=3+R()*4;s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+rx*.5+'" fill="'+t.rind+'"/>';}
+  s+='<polygon points="100,28 182,68 100,108 18,68" fill="url(#'+g+')"/>';
+ }else{
+  const h=t.h||44,top=100-h/2,bot=top+h;
+  s+='<ellipse cx="100" cy="'+(bot+10)+'" rx="84" ry="30" fill="#000" opacity=".25"/><ellipse cx="100" cy="'+bot+'" rx="88" ry="38" fill="'+t.rind+'"/><rect x="12" y="'+top+'" width="176" height="'+h+'" fill="'+t.rind+'"/>';
+  for(let i=0;i<(t.sideHoles||0);i++){const x=28+R()*144,y=top+40+R()*(h-6),rx=4+R()*4;s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+rx*.8+'" fill="#000" opacity=".18"/>';}
+  s+='<ellipse cx="100" cy="'+top+'" rx="88" ry="38" fill="'+t.color+'"/>';
+  for(let i=0;i<(t.holes||0);i++){const a=R()*6.283,r=Math.sqrt(R())*.78,x=100+Math.cos(a)*r*80,y=top+Math.sin(a)*r*32,rx=5+R()*9;
+   s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+rx*.45+'" fill="'+t.rind+'" opacity=".85"/>';}
+  if(t.veins)for(let i=0;i<8;i++){const x=40+R()*110,y=top-22+R()*40;s+='<path d="M'+x+' '+y+' q'+(R()*20-10)+' '+(R()*10-5)+' '+(R()*30-5)+' '+(R()*8-4)+'" stroke="#3f7d6e" stroke-width="3" fill="none" stroke-linecap="round" opacity=".75"/>';}
+  s+='<ellipse cx="100" cy="'+top+'" rx="88" ry="38" fill="url(#'+g+')"/>';
+ }
+ if(t.stars)for(let i=0;i<6;i++)s+='<text x="'+(25+R()*150)+'" y="'+(20+R()*160)+'" font-size="'+(10+R()*14)+'" fill="#fff" opacity=".85">✦</text>';
+ return s+'</svg>';
+}
+
+/* ================= CURSOR-TEXTUREN ================= */
+const CPATH='M3 2 L3 25 L9 19.5 L13 28.5 L17.5 26.5 L13.5 17.5 L21.5 17.5 Z';
+const CTEX={
+ holz:{a:'#d29a5a',b:'#8a5426',s:'#3e2208',x:'<path d="M4 8 Q7 12 5 16 M7 6 Q10 11 8 18 M4 19 Q8 21 10 24" stroke="#5e3612" stroke-width="1" fill="none"/>'},
+ stein:{a:'#d0d0d0',b:'#6e6e6e',s:'#2b2b2b',x:'<circle cx="6" cy="11" r="1.3" fill="#4a4a4a"/><circle cx="9" cy="18" r="1" fill="#4a4a4a"/><circle cx="12" cy="15" r="1.2" fill="#a8a8a8"/><circle cx="5" cy="21" r="1" fill="#a8a8a8"/>'},
+ eisen:{a:'#ffffff',b:'#8592a0',s:'#2e353c',x:'<path d="M5 5 L5 21" stroke="#fff" stroke-width="1.4" opacity=".85"/>'},
+ gold:{a:'#fff3a8',b:'#d49400',s:'#5c3b00',x:'<path d="M5 5 L5 19" stroke="#fff" stroke-width="1.6" opacity=".9"/><circle cx="12" cy="16" r="1" fill="#fff" opacity=".8"/>'},
+ diamant:{a:'#f0ffff',b:'#1fa8e8',s:'#014a80',x:'<path d="M3 4 L12 18 M3 14 L17 18 M7 9 L14 15 M3 20 L9 19" stroke="#fff" stroke-width=".9" opacity=".85"/>'},
+ kaese:{a:'#ffe27a',b:'#f0b020',s:'#8a5600',x:'<circle cx="6.5" cy="11" r="1.9" fill="#d48d10"/><circle cx="10.5" cy="16.5" r="1.5" fill="#d48d10"/><circle cx="5.5" cy="20" r="1.2" fill="#d48d10"/><circle cx="14" cy="21" r="1.1" fill="#d48d10"/>'},
+ kosmos:{a:'#ff6ec7',b:'#3d1599',s:'#100326',x:'<circle cx="6" cy="9" r=".9" fill="#fff"/><circle cx="9.5" cy="15" r=".7" fill="#fff"/><circle cx="6.5" cy="20.5" r="1" fill="#fff"/><circle cx="13.5" cy="19.5" r=".6" fill="#fff"/><circle cx="4.5" cy="14" r=".5" fill="#ffd54a"/>'}
+};
+function cursorSVG(k,uid){const t=CTEX[k],g='cg'+uid;
+ return '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs><linearGradient id="'+g+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+t.a+'"/><stop offset="1" stop-color="'+t.b+'"/></linearGradient><clipPath id="'+g+'c"><path d="'+CPATH+'"/></clipPath></defs><path d="'+CPATH+'" fill="url(#'+g+')" stroke="'+t.s+'" stroke-width="1.6" stroke-linejoin="round"/><g clip-path="url(#'+g+'c)">'+t.x+'</g></svg>';}
+function texNode(k){return NODES.find(n=>n.eff.tex===k);}
+function ownsTex(k){const n=texNode(k);return !!(n&&S.up[n.id]);}
+function applyCursor(){let st=document.getElementById('curstyle');
+ if(!st){st=document.createElement('style');st.id='curstyle';document.head.appendChild(st);}
+ if(!ownsTex(S.cursor)){st.textContent='';return;}
+ const url='data:image/svg+xml,'+encodeURIComponent(cursorSVG(S.cursor,'live'));
+ st.textContent='*,*::before,*::after{cursor:url("'+url+'") 3 2,auto!important}';}
+function nodeIcon(n,uid){return n.eff.tex?cursorSVG(n.eff.tex,uid):n.icon;}
+
+/* ================= EFFEKTE ================= */
+function floatText(x,y,txt,cls){const d=document.createElement('div');d.className='ft'+(cls?' '+cls:'');d.textContent=txt;d.style.left=x+'px';d.style.top=(y-20)+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),cls==='big'?2200:1000);}
+function crumbs(x,y,n){const col=TYPE[S.type].color;for(let i=0;i<n;i++){const c=document.createElement('div');c.className='crumb';c.style.left=x+'px';c.style.top=y+'px';c.style.background=col;
+ c.style.setProperty('--dx',(Math.random()*120-60)+'px');c.style.setProperty('--dy',(Math.random()*90-20)+'px');document.body.appendChild(c);setTimeout(()=>c.remove(),700);}}
+function toast(html,col){const box=$('#toasts'),t=document.createElement('div');t.className='toast'+(col?' drop':'');if(col)t.style.setProperty('--rc',col);t.innerHTML=html;box.appendChild(t);
+ setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),450);},col?3200:3800);while(box.children.length>6)box.firstChild.remove();}
+function cheeseRain(n){for(let i=0;i<n;i++){const d=document.createElement('div');d.className='rain';d.textContent=Math.random()<.15?'✨':'🧀';d.style.left=Math.random()*100+'vw';
+ const dur=2+Math.random()*2.5;d.style.animationDuration=dur+'s';d.style.animationDelay=Math.random()*1.5+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),(dur+1.6)*1000);}}
+
+/* ================= DROP-ANIMATION (Skyblock-Stil) ================= */
+const DROPHEAD={r:'RARE DROP!',e:'VERY RARE DROP!',l:'LEGENDARY DROP!',x:'CRAZY RARE DROP!',g:'PRAY TO RNGESUS DROP!'};
+/* [Dauer in ms, Größenfaktor] – je seltener, desto größer und länger */
+const DROPCFG={r:[2400,1],e:[2600,1.12],l:[2800,1.25],x:[3100,1.42],g:[3500,1.6],s:[2800,1.25]};
+function queueDrop(d){if(dropQ.length>=6){if(d.fallback)toast(d.fallback,d.col);return;}dropQ.push(d);if(!dropBusy)nextDrop();}
+function nextDrop(){
+ const el=$('#drop'),d=dropQ.shift();
+ if(!d){dropBusy=false;el.className='';el.innerHTML='';return;}
+ dropBusy=true;const c=DROPCFG[d.r]||DROPCFG.s,rb=d.r==='g'?' rb':'';
+ el.style.setProperty('--rc',d.col);el.style.setProperty('--dd',c[0]+'ms');el.style.setProperty('--ds',c[1]);
+ el.innerHTML='<div class="dhead'+rb+'">'+d.head+'</div><div class="dname'+rb+'">'+d.name+'</div><div class="dico">'+d.icon+'</div>'+(d.sub?'<div class="dsub">'+d.sub+'</div>':'');
+ el.className='go';
+ setTimeout(nextDrop,c[0]+150);
+}
+
+/* ================= ITEMS ================= */
+function rollRarity(min){const w=rarWeights(min);let r=Math.random()*w.reduce((a,b)=>a+b,0);
+ for(let i=0;i<RKEYS.length;i++){r-=w[i];if(w[i]>0&&r<=0)return RKEYS[i];}
+ return RKEYS[Math.max(0,RKEYS.indexOf(min||'c'))];}
+function dropItem(min){
+ const r=rollRarity(min),list=ITEMS.filter(i=>i.r===r),it=list[Math.floor(Math.random()*list.length)];
+ const isNew=!S.items[it.id];S.items[it.id]=(S.items[it.id]||0)+1;S.itemsFound++;S.rarFound[r]=1;recalc();dirty.items=1;
+ const R=RAR[r],n=S.items[it.id];
+ const t='<b class="'+(r==='g'?'rb':'')+'">'+R.n+' DROP!</b> '+it.icon+' '+it.name+' '+(isNew?'<span class="tnew">NEU</span>':'<small>×'+n+'</small>');
+ /* Ab RARE: Animation mit Name darüber und Magic Find darunter. Darunter nur eine kleine Meldung. */
+ if(RKEYS.indexOf(r)>=2)queueDrop({r,col:R.col,head:DROPHEAD[r],name:it.name,icon:it.icon,sub:'(+'+Math.round(M.mf)+'% ✯ Magic Find)',fallback:t});
+ else toast(t,R.col);
+}
+
+/* ================= GOLDKÄSE ================= */
+let goldN=0;
+function goldReady(){return Date.now()-lastGold>=CAP.goldMin*1000;}
+function spawnGold(){
+ lastGold=Date.now();
+ const g=document.createElement('div');g.className='golden';g.innerHTML=cheeseSVG(GOLDT,'gold'+(goldN++));
+ g.style.left=(10+Math.random()*(innerWidth-110))+'px';g.style.top=(60+Math.random()*(innerHeight-220))+'px';document.body.appendChild(g);
+ let done=false;
+ g.addEventListener('pointerdown',e=>{if(done)return;done=true;e.stopPropagation();clickGold(e.clientX,e.clientY);g.remove();});
+ setTimeout(()=>{if(!done){done=true;g.classList.add('out');setTimeout(()=>g.remove(),650);}},13000*M.goldDur);
+}
+/* Derselbe Buff stapelt nicht: er verlängert nur die Dauer (höchstens auf das Doppelte) */
+function addBuff(name,type,mult,sec){sec*=M.goldDur;const now=Date.now(),b=buffs.find(x=>x.type===type);
+ if(b)b.end=Math.min(Math.max(b.end,now)+sec*1000,now+sec*2000);else buffs.push({name,type,mult,end:now+sec*1000});}
+function clickGold(x,y){
+ S.goldClicks++;
+ const opts=[['lucky',40],['frenzy',30],['click',10],['rain',12],['item',8]];
+ let r=Math.random()*100,pick='lucky';for(const [k,w] of opts){r-=w;if(r<=0){pick=k;break;}}
+ let msg='';
+ if(pick==='lucky'){const v=Math.min(S.cheese*.1,baseCps()*300)+13;gain(v);msg='Glückskäse! +'+fmt(v);}
+ else if(pick==='frenzy'){addBuff('Käserausch','cps',3,40);msg='Käserausch! Produktion ×3';}
+ else if(pick==='click'){addBuff('Klickwahn','click',10,12);msg='Klickwahn! Klicks ×10';}
+ else if(pick==='rain'){const v=Math.max(baseCps()*45,clickPower()*20);gain(v);cheeseRain(45);msg='Käseregen! +'+fmt(v);}
+ else {msg='Ein Schatz!';dropItem('u');}
+ floatText(x,y,msg,'big');toast('✨ '+msg);
+}
+
+/* ================= KLICK ================= */
+const cheeseBtn=$('#cheese');
+function doClick(x,y,auto){
+ const v=clickPower()*(auto?.5:1);gain(v);S.handmade+=v;
+ if(auto)S.autoClicks++;else S.clicks++;
+ floatText(x,y,'+'+fmt(v),auto?'sm':'');if(!auto)crumbs(x,y,3);
+ if(Math.random()<itemChance()*(auto?.5:1))dropItem();
+ if(!auto&&M.florian&&Math.random()<.01&&goldReady()&&document.querySelectorAll('.golden').length<3)spawnGold();
+}
+function autoClick(){const r=cheeseBtn.getBoundingClientRect();doClick(r.left+r.width*(.3+Math.random()*.4),r.top+r.height*(.3+Math.random()*.4),true);}
+cheeseBtn.addEventListener('pointerdown',e=>{e.preventDefault();doClick(e.clientX,e.clientY,false);});
+cheeseBtn.addEventListener('contextmenu',e=>e.preventDefault());
+
+/* ================= TOOLTIP =================
+   Maus: Hover wie bisher. Touch: Tippen kauft direkt, gedrückt halten zeigt die Beschreibung,
+   Loslassen / Tippen woanders / Scrollen / 3 Sekunden schließen sie wieder. */
+const tip=$('#tip');
+let tipFn=null,tipTimer=0,lpTimer=0,lpBlock=false;
+function placeTip(x,y,touch){const w=tip.offsetWidth,h=tip.offsetHeight;let tx,ty;
+ if(touch){tx=Math.min(x-w/2,innerWidth-w-4);ty=y-h-28;if(ty<4)ty=Math.min(y+28,innerHeight-h-4);}
+ else{tx=x+16;ty=y+12;if(tx+w>innerWidth-4)tx=x-w-12;if(ty+h>innerHeight-4)ty=innerHeight-h-4;}
+ tip.style.left=Math.max(4,tx)+'px';tip.style.top=Math.max(4,ty)+'px';}
+function showTip(fn,x,y,touch){clearTimeout(tipTimer);tipFn=fn;tip.innerHTML=fn();tip.style.display='block';placeTip(x,y,touch);if(touch)tipTimer=setTimeout(hideTip,3000);}
+function hideTip(){clearTimeout(tipTimer);tipFn=null;tip.style.display='none';}
+/* tap (optional): Funktion, die sagt, ob ein kurzes Tippen die Beschreibung zeigen soll (z. B. wenn man nichts kaufen kann) */
+function bindTip(el,fn,tap){
+ el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')showTip(fn,e.clientX,e.clientY,false);});
+ el.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'&&tipFn===fn)placeTip(e.clientX,e.clientY,false);});
+ el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')hideTip();else clearTimeout(lpTimer);});
+ el.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;const x=e.clientX,y=e.clientY;el._lp=false;clearTimeout(lpTimer);
+  lpTimer=setTimeout(()=>{el._lp=true;lpBlock=true;showTip(fn,x,y,true);},400);});
+ el.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;clearTimeout(lpTimer);
+  if(el._lp)hideTip();else if(tap&&tap())showTip(fn,e.clientX,e.clientY,true);});
+ el.addEventListener('pointercancel',()=>{clearTimeout(lpTimer);hideTip();});
+ el.addEventListener('contextmenu',e=>e.preventDefault());
+}
+document.addEventListener('pointerdown',e=>{lpBlock=false;if(e.pointerType!=='mouse'&&tip.style.display==='block')hideTip();},true);
+document.addEventListener('click',e=>{if(lpBlock){lpBlock=false;e.stopPropagation();e.preventDefault();}},true);
+document.addEventListener('scroll',()=>{clearTimeout(lpTimer);hideTip();},true);
+
+/* ================= SHOP ================= */
+function buildAmt(){$('#amt').innerHTML=[1,10,100].map(n=>'<button data-n="'+n+'" class="'+(n===buyAmt?'on':'')+'">×'+n+'</button>').join(' ');
+ $('#amt').querySelectorAll('button').forEach(b=>b.onclick=()=>{buyAmt=+b.dataset.n;buildAmt();});}
+function buildStore(){
+ const el=$('#buildings');el.innerHTML='';
+ BUILDINGS.forEach(b=>{const r=document.createElement('div');r.className='bld';
+  r.innerHTML='<div class="bi">'+b.icon+'</div><div class="bm"><div class="bn">'+b.name+'</div><div class="bc">🧀 <span></span></div></div><div class="bo">0</div>';
+  r.onclick=()=>buyB(b);bindTip(r,()=>bTip(b));el.appendChild(r);b.el=r;b.cEl=r.querySelector('.bc span');b.oEl=r.querySelector('.bo');b.nEl=r.querySelector('.bn');b.iEl=r.querySelector('.bi');});
+}
+function bUnl(b){return (S.b[b.id]||0)>0||S.allTime>=b.base*.6;}
+function bTip(b){
+ if(b.el.classList.contains('myst'))return '<b>???</b><br><i>Produziere mehr Käse, um dieses Gebäude zu entdecken.</i>';
+ const o=S.b[b.id]||0,each=b.cps*M.b[b.id]*M.global,tot=M.raw*M.global;
+ return '<b>'+b.icon+' '+b.name+'</b><span class="r">besitzt: '+o+'</span><br><i>'+b.desc+'</i><hr>Kosten (×'+buyAmt+'): <b>'+fmt(bCost(b,buyAmt))+'</b><br>Jede(r) produziert <b>'+fmt(each)+'</b>/s'+(o?'<br>Gesamt: <b>'+fmt(each*o)+'</b>/s ('+(tot?(each*o/tot*100).toFixed(1).replace('.',','):0)+'%)':'')+(M.b[b.id]>1?'<br>Pfad-Bonus: ×'+dez(+M.b[b.id].toFixed(2)):'');
+}
+function buyB(b){if(b.el.classList.contains('myst'))return;const c=bCost(b,buyAmt);if(S.cheese<c)return;S.cheese-=c;S.b[b.id]=(S.b[b.id]||0)+buyAmt;recalc();
+ b.el.classList.remove('flash');void b.el.offsetWidth;b.el.classList.add('flash');if(b.id==='maus')renderOrbit();if(tip.style.display==='block')tip.innerHTML=bTip(b);}
+function updStore(){
+ let shownLocked=false;
+ BUILDINGS.forEach(b=>{const own=S.b[b.id]||0;
+  if(bUnl(b)){b.el.style.display='';b.el.classList.remove('myst');b.nEl.textContent=b.name;b.iEl.textContent=b.icon;const c=bCost(b,buyAmt);b.cEl.textContent=fmt(c);b.oEl.textContent=own||'';b.el.classList.toggle('can',S.cheese>=c);}
+  else if(!shownLocked){shownLocked=true;b.el.style.display='';b.el.classList.add('myst');b.el.classList.remove('can');b.nEl.textContent='???';b.iEl.textContent='❔';b.cEl.textContent=fmt(b.base);b.oEl.textContent='';}
+  else b.el.style.display='none';});
+}
+function nodeTip(n){
+ const st=nodeState(n),br=BRANCH[n.br];
+ let h='<b>'+(n.eff.tex?'':n.icon+' ')+n.name+'</b>'+(n.special?' <span class="r">★ Spezial</span>':n.tier?' <span class="r">Stufe '+n.tier+'</span>':'')+'<br><i>Pfad: '+br.icon+' '+br.name+'</i><hr>'+n.desc;
+ if(st==='own')h+='<hr><span style="color:var(--ok)">✔ Gekauft</span>'+(n.eff.tex?'<br>Klicken, um die Textur '+(S.cursor===n.eff.tex?'abzulegen':'auszurüsten')+'.':'');
+ else{h+='<hr>Kosten: <b>'+fmt(n.cost)+'</b>';
+  if(st==='lock')h+='<br><span style="color:var(--bad)">Benötigt zuerst: '+n.parents.map(p=>NODE[p].name).join(' + ')+'</span>';
+  if(st!=='av'&&n.reqText)h+='<br><span style="color:'+(n.req()?'var(--ok)':'var(--bad)')+'">Bedingung: '+n.reqText+(n.req()?' ✔':'')+'</span>';}
+ return h;
+}
+function buyNode(n){if(nodeState(n)!=='av'||S.cheese<n.cost)return;
+ S.cheese-=n.cost;S.up[n.id]=1;recalc();upKey=null;treeKey=null;hideTip();renderCheese();
+ if(n.eff.tex){S.cursor=n.eff.tex;applyCursor();toast('🖱️ Neue Cursor-Textur: <b>'+n.name+'</b>');}
+ if(n.special)queueDrop({r:'s',col:'#ff7ab8',head:'SPEZIAL-UPGRADE!',name:n.name,icon:n.icon,sub:n.desc});
+ if(activeTab==='tree')renderTree();}
+let upKey=null;
+function updUps(){
+ const v=NODES.filter(n=>nodeState(n)==='av').sort((a,b)=>a.cost-b.cost),key=v.map(u=>u.id).join();
+ if(key!==upKey){upKey=key;hideTip();const el=$('#ups');el.innerHTML='';
+  v.forEach(n=>{const d=document.createElement('div');d.className='up'+(n.special?' special':'');d.innerHTML=nodeIcon(n,'s'+n.id)+(n.tier?'<i>'+n.tier+'</i>':'');
+   d.onclick=()=>buyNode(n);bindTip(d,()=>nodeTip(n),()=>S.cheese<n.cost);n.el=d;el.appendChild(d);});}
+ v.forEach(n=>n.el.classList.toggle('can',S.cheese>=n.cost));
+}
+
+/* ================= UPGRADE-BAUM ================= */
+let treeKey=null;
+function renderTree(){
+ const vis=BRANCHES.filter(b=>!b.bld||bUnl(BLD[b.bld]));
+ const key=vis.map(b=>b.id).join()+'|'+NODES.map(n=>nodeState(n)[0]).join('')+'|'+S.cursor;
+ if(key===treeKey&&$('#p-tree').innerHTML)return;treeKey=key;hideTip();
+ const own=NODES.filter(n=>S.up[n.id]).length;
+ let h='<p class="hint">Der Upgrade-<b>Baum</b>: Jeder Knoten braucht den vorherigen. Gekauft <b>'+own+'/'+NODES.length+'</b>. 🔒 = Bedingung noch nicht erfüllt. Boni derselben Art <b>addieren</b> sich.<span class="th"> Tippen kauft, <b>gedrückt halten</b> zeigt die Beschreibung.</span></p>',sec='';
+ vis.forEach(b=>{
+  if(b.sec!==sec){sec=b.sec;h+='<div class="tsec">'+sec+'</div>';}
+  const from=b.from?' <small>↳ zweigt ab von „'+NODE[b.from].name+'“</small>':'';
+  h+='<div class="tbr"><div class="tbh">'+b.icon+' '+b.name+from+'</div>'+(b.note?'<div class="hint" style="margin:2px 0 0">'+b.note+'</div>':'')+'<div class="trow">';
+  b.nodes.forEach((n,i)=>{const st=nodeState(n);
+   if(i)h+='<div class="tl'+(S.up[b.nodes[i-1].id]?' on':'')+'"></div>';
+   h+='<div class="tn '+st+(n.special?' sp':'')+(n.eff.tex&&S.cursor===n.eff.tex&&st==='own'?' wear':'')+'" data-n="'+n.id+'">'+nodeIcon(n,'t'+n.id)+'</div>';});
+  h+='</div></div>';});
+ const hid=BRANCHES.length-vis.length;
+ if(hid)h+='<p class="hint">'+hid+' weitere Gebäude-Pfade erscheinen, sobald du die Gebäude entdeckst.</p>';
+ const el=$('#p-tree');el.innerHTML=h;
+ el.querySelectorAll('.tn').forEach(d=>{const n=NODE[d.dataset.n];bindTip(d,()=>nodeTip(n),()=>{const st=nodeState(n);return st==='av'?S.cheese<n.cost:!(st==='own'&&n.eff.tex);});
+  d.onclick=()=>{if(S.up[n.id]){if(n.eff.tex){S.cursor=S.cursor===n.eff.tex?'none':n.eff.tex;applyCursor();treeKey=null;renderTree();
+    toast(S.cursor==='none'?'🖱️ Standard-Cursor aktiv':'🖱️ <b>'+n.name+'</b> ausgerüstet');}}else buyNode(n);};});
+ updTreeCan();
+}
+function updTreeCan(){if(activeTab!=='tree')return;document.querySelectorAll('#p-tree .tn.av').forEach(d=>d.classList.toggle('can',S.cheese>=NODE[d.dataset.n].cost));}
+
+/* ================= LINKE SEITE ================= */
+function renderCheese(){cheeseBtn.innerHTML=cheeseSVG(TYPE[S.type],'main');cheeseBtn.classList.toggle('flo',!!M.florian);
+ const t=TYPE[S.type];$('#typeName').textContent='Aktive Sorte: '+t.name+(bonusText(t.bonus)?' ('+bonusText(t.bonus)+')':'');}
+let orbitN=-1;
+function renderOrbit(){const n=Math.min(S.b.maus||0,50);if(n===orbitN)return;orbitN=n;const o=$('#orbit'),R=$('#cwrap').offsetWidth*.47;let h='';
+ for(let i=0;i<n;i++)h+='<span style="transform:rotate('+(i/n*360)+'deg) translateY(-'+R+'px) rotate(180deg)">🐭</span>';o.innerHTML=h;}
+addEventListener('resize',()=>{orbitN=-1;renderOrbit();});
+$('#bank').onclick=()=>{const n=prompt('Wie soll deine Käserei heißen?',S.name);if(n&&n.trim()){S.name=n.trim().slice(0,30);$('#bank').textContent=S.name;}};
+
+/* ================= TABS ================= */
+const TABS=[['tree','🌳 Upgrade-Baum'],['types','🧀 Käsearten'],['items','🎁 Items'],['ach','🏆 Erfolge'],['stats','📊 Statistik'],['pres','🌟 Rebirth'],['opt','⚙️ Optionen']];
+const MORE=['stats','pres','opt'];
+function buildTabs(){$('#tabs').innerHTML=TABS.map(([k,n])=>'<button data-k="'+k+'" class="'+(k===activeTab?'on':'')+(MORE.includes(k)?' mo':'')+'">'+n+'</button>').join('');
+ $('#tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{activeTab=b.dataset.k;if(MORE.includes(activeTab))moreTab=activeTab;buildTabs();showTab();});}
+/* Untere Leiste für Handy/Tablet: „Gebäude" zeigt den Shop, die anderen Punkte die jeweilige Seite */
+const MNAV=[['shop','🏠','Gebäude'],['tree','🌳','Upgrades'],['types','🧀','Käsearten'],['items','🎁','Items'],['ach','🏆','Erfolge'],['more','☰','Mehr']];
+function buildNav(){document.body.dataset.m=mTab;
+ $('#nav').innerHTML=MNAV.map(([k,i,n])=>'<button data-k="'+k+'" class="'+(k===mTab?'on':'')+'"><span>'+i+'</span>'+n+'</button>').join('');
+ $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{mTab=b.dataset.k;if(mTab!=='shop'){activeTab=mTab==='more'?moreTab:mTab;buildTabs();showTab();}buildNav();});}
+const MQ=matchMedia('(max-width:950px)');
+function onMQ(){if(MQ.matches){mTab='shop';buildNav();}orbitN=-1;renderOrbit();}
+if(MQ.addEventListener)MQ.addEventListener('change',onMQ);else MQ.addListener(onMQ);
+function showTab(){TABS.forEach(([k])=>$('#p-'+k).classList.toggle('on',k===activeTab));hideTip();renderTab(true);}
+function renderTab(force){
+ if(activeTab==='tree'){if(force)treeKey=null;renderTree();}
+ if(activeTab==='types'&&(force||dirty.types))renderTypes();
+ if(activeTab==='items'&&(force||dirty.items))renderItems();
+ if(activeTab==='ach'&&(force||dirty.ach))renderAch();
+ if(activeTab==='stats')renderStats();
+ if(activeTab==='pres'){if(force)presLast='';renderPres();}
+ if(activeTab==='opt'&&force)renderOpt();
+}
+function renderTypes(){dirty.types=0;const el=$('#p-types');
+ el.innerHTML='<p class="hint">Jede freigeschaltete Käseart gibt dauerhaft <b>+5% Produktion</b>. Die aktive Sorte gibt zusätzlich ihren eigenen Bonus (alles wird addiert, nichts multipliziert sich). Klicke eine Sorte an, um sie zu wechseln.</p><div class="grid">'+
+ TYPES.map((t,i)=>{const u=S.types[t.id];return '<div class="card '+(u?'':'lock ')+(S.type===t.id?'on':'')+'" data-t="'+t.id+'">'+cheeseSVG(t,'ty'+i)+'<b>'+(u?t.name:'???')+'</b><small>'+(u?(bonusText(t.bonus)||'Kein Bonus'):'Insgesamt '+fmt(t.req)+' Käse')+'</small></div>';}).join('')+'</div>';
+ el.querySelectorAll('[data-t]').forEach(c=>c.onclick=()=>{const id=c.dataset.t;if(!S.types[id])return;S.type=id;recalc();renderCheese();renderTypes();});}
+function pct(p){p*=100;return (p>=10?p.toFixed(0):p>=1?p.toFixed(1):p>=.1?p.toFixed(2):p.toFixed(3)).replace('.',',')+'%';}
+function renderItems(){dirty.items=0;const el=$('#p-items'),uniq=ITEMS.filter(i=>S.items[i.id]).length,pr=rarProbs();
+ el.innerHTML='<p class="hint">Jeder Klick hat eine Chance auf ein Item (aktuell <b>'+pct(itemChance())+'</b>, höchstens 1%, Autoklicks halb so viel). Gefunden: <b>'+uniq+'/'+ITEMS.length+'</b>. Duplikate zählen für die Sammlung, geben aber keinen Extra-Bonus.<br>'+
+ '<b>✯ Magic Find: '+Math.round(M.mf)+'</b> – erhöht die Chance auf RARE und besser. Ab RARE gibt es die Drop-Animation.</p>'+
+ '<div class="rdist">'+RKEYS.map((k,i)=>'<span><b class="'+(k==='g'?'rb':'')+'" style="color:'+RAR[k].col+'">'+RAR[k].n+'</b> '+pct(pr[i])+'</span>').join('')+'</div><div class="grid">'+
+ ITEMS.map(i=>{const n=S.items[i.id],R=RAR[i.r];return '<div class="card '+(n?'':'unk')+'" data-i="'+i.id+'" style="border-color:'+R.col+'"><div class="it">'+i.icon+'</div><b style="font-size:12px">'+(n?i.name:'???')+'</b><small class="'+(i.r==='g'?'rb':'')+'" style="color:'+R.col+'">'+R.n+'</small>'+(n?'<span class="cnt">×'+n+'</span>':'')+'</div>';}).join('')+'</div>';
+ el.querySelectorAll('[data-i]').forEach(c=>{const i=ITEM[c.dataset.i],R=RAR[i.r];bindTip(c,()=>S.items[i.id]?'<b>'+i.icon+' '+i.name+'</b><span class="r'+(i.r==='g'?' rb':'')+'" style="color:'+R.col+'">'+R.n+'</span><br><i>'+i.desc+'</i><hr>'+bonusText(i.bonus):'<b>???</b><span class="r'+(i.r==='g'?' rb':'')+'" style="color:'+R.col+'">'+R.n+'</span><br><i>Noch nicht gefunden.</i>',()=>true);});}
+function renderAch(){dirty.ach=0;const el=$('#p-ach'),n=Object.keys(S.ach).length;
+ el.innerHTML='<p class="hint">Freigeschaltet: <b>'+n+'/'+ACH.length+'</b> – jeder Erfolg gibt <b>+1% Produktion</b>.</p><div>'+ACH.map(a=>'<span class="ach '+(S.ach[a.id]?'got':'no')+'" data-a="'+a.id+'">'+a.icon+'</span>').join('')+'</div>';
+ el.querySelectorAll('[data-a]').forEach(c=>{const a=ACH.find(x=>x.id===c.dataset.a);bindTip(c,()=>'<b>'+a.icon+' '+a.name+'</b>'+(S.ach[a.id]?' <span class="r">✔</span>':'')+'<br><i>'+a.desc+'</i>',()=>true);});}
+function renderStats(){const ownUp=NODES.filter(n=>S.up[n.id]).length;
+ const rows=[['Käse im Lager',fmt(S.cheese)],['Käse (dieser Durchlauf)',fmt(S.total)],['Käse (insgesamt)',fmt(S.allTime)],['Käse pro Sekunde',fmt(cps())],['Käse pro Klick',fmt(clickPower())],
+ ['Autoklicks pro Sekunde',M.auto],['Klicks',fmt(S.clicks)],['Autoklicks',fmt(S.autoClicks)],['Handgemachter Käse',fmt(S.handmade)],['Gebäude',fmt(totalB())],['Upgrades im Baum',ownUp+'/'+NODES.length],['Items gefunden',fmt(S.itemsFound)],
+ ['Item-Chance pro Klick',pct(itemChance())],['✯ Magic Find',Math.round(M.mf)],['Goldkäse geklickt',S.goldClicks],['Käsearten',Object.keys(S.types).length+'/'+TYPES.length],
+ ['Erfolge',Object.keys(S.ach).length+'/'+ACH.length],['Käseweisheit',S.prestige+' (Produktion ×'+M.rb.toFixed(2).replace('.',',')+')'],['Rebirths',S.resets],['Spielzeit',fmtTime((Date.now()-S.start)/1000)],
+ ['Gesamt-Multiplikator','×'+M.global.toFixed(2).replace('.',',')],['Klick-Multiplikator','×'+M.clickMult.toFixed(2).replace('.',',')]];
+ $('#p-stats').innerHTML='<table>'+rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('')+'</table>';}
+let presLast='';
+function renderPres(){const g=presGain(),key=g+'|'+S.prestige;if(key===presLast&&$('#p-pres').innerHTML)return;presLast=key;
+ const now=rbMult(S.prestige),after=rbMult(S.prestige+g);
+ $('#p-pres').innerHTML='<p class="hint">Beim <b>Rebirth</b> startest du von vorn: Käse, Gebäude und der Upgrade-Baum (inkl. Cursor) verschwinden. Du behältst Items, Erfolge und Käsearten und erhältst <b>Käseweisheit</b>.<br>'+
+ 'Der Bonus wächst <b>logarithmisch</b>: Die ersten Punkte bringen viel, später flacht er ab, damit nichts explodiert. Jede Käseweisheit gibt außerdem etwas <b>✯ Magic Find</b>.</p>'+
+ '<table><tr><td>Aktuelle Käseweisheit</td><td>'+S.prestige+'</td></tr><tr><td>Aktueller Bonus</td><td>Produktion ×'+now.toFixed(2).replace('.',',')+' · +'+rbMF(S.prestige)+' ✯ MF</td></tr>'+
+ '<tr><td>Gewinn bei Rebirth jetzt</td><td>+'+g+'</td></tr><tr><td>Bonus danach</td><td>Produktion ×'+after.toFixed(2).replace('.',',')+' · +'+rbMF(S.prestige+g)+' ✯ MF</td></tr>'+
+ '<tr><td>Nächster Punkt bei insgesamt</td><td>'+fmt(Math.pow(presTotal()+1,3)*RB)+' Käse</td></tr></table><br>'+
+ '<button class="btn big" id="ascend" '+(g>0?'':'disabled')+'>🌟 Rebirth (+'+g+' Käseweisheit)</button>';
+ $('#ascend').onclick=ascend;}
+function ascend(){const g=presGain();if(g<=0)return;if(!confirm('Wirklich Rebirth? Du erhältst +'+g+' Käseweisheit, verlierst aber Käse, Gebäude und den Upgrade-Baum.'))return;
+ S.prestige+=g;S.resets++;S.cheese=0;S.total=0;S.b={};S.up={};S.cursor='none';buffs=[];autoAcc=0;recalc();applyCursor();upKey=null;treeKey=null;orbitN=-1;renderOrbit();renderCheese();presLast='';save();
+ queueDrop({r:'s',col:'#ffd54a',head:'REBIRTH!',name:'+'+g+' Käseweisheit',icon:'🌟',sub:'Produktion jetzt ×'+M.rb.toFixed(2).replace('.',',')+' · +'+rbMF(S.prestige)+' ✯ Magic Find'});
+ renderTab(true);}
+function renderOpt(){$('#p-opt').innerHTML='<p class="hint">Das Spiel speichert automatisch alle 10 Sekunden im Browser.</p>'+
+ '<p><button class="btn" id="o-save">💾 Jetzt speichern</button> <button class="btn" id="o-exp">📤 Spielstand exportieren</button> <button class="btn" id="o-imp">📥 Spielstand importieren</button></p>'+
+ '<p><button class="btn" id="o-reset" style="border-color:#ff5252;color:#ff8a80">🗑️ Alles zurücksetzen</button></p><textarea id="o-txt" style="width:100%;height:90px;background:#1b1007;color:var(--txt);border:1px solid var(--line);border-radius:8px;display:none"></textarea>';
+ const ta=$('#o-txt');
+ $('#o-save').onclick=()=>{save();toast('💾 Gespeichert!');};
+ $('#o-exp').onclick=()=>{save();ta.style.display='block';ta.value=btoa(unescape(encodeURIComponent(JSON.stringify(S))));ta.select();toast('📤 Code markiert – kopieren und sicher aufheben.');};
+ $('#o-imp').onclick=()=>{const c=prompt('Exportierten Spielstand einfügen:');if(!c)return;try{S=Object.assign(DEF(),JSON.parse(decodeURIComponent(escape(atob(c.trim())))));sanitize();afterLoad();toast('📥 Spielstand geladen!');}catch(e){alert('Ungültiger Code.');}};
+ $('#o-reset').onclick=()=>{if(!confirm('Wirklich ALLES löschen? Das kann nicht rückgängig gemacht werden!'))return;try{localStorage.removeItem(KEY);}catch(e){}S=DEF();afterLoad();};}
+
+/* ================= LOOP ================= */
+function checkAll(){
+ let changed=false;
+ TYPES.forEach(t=>{if(!S.types[t.id]&&S.allTime>=t.req){S.types[t.id]=1;changed=true;dirty.types=1;
+  const bt=bonusText(t.bonus);queueDrop({r:'s',col:t.id==='gouda'?'#ffd54a':t.color,head:'NEUE KÄSEART!',name:t.name,icon:cheeseSVG(t,'dr'+t.id),sub:bt,fallback:'🧀 Neue Käseart: <b>'+t.name+'</b>'+(bt?' <small>('+bt+')</small>':'')});}});
+ if(changed)recalc();
+ let n=0;ACH.forEach(a=>{if(!S.ach[a.id]&&a.cond()){S.ach[a.id]=1;n++;toast('🏆 Erfolg: <b>'+a.name+'</b>');}});
+ if(n){recalc();dirty.ach=1;}
+}
+let lastT=Date.now(),newsI=0;
+function tick(){
+ const now=Date.now(),dt=Math.min((now-lastT)/1000,3600);lastT=now;
+ buffs=buffs.filter(b=>b.end>now);
+ gain(cps()*dt);
+ if(M.auto>0){autoAcc+=M.auto*dt;let k=0;while(autoAcc>=1&&k<20){autoAcc-=1;autoClick();k++;}if(autoAcc>1)autoAcc=1;}
+ if(Math.random()<.0003*M.luck*dt)dropItem();
+ goldTimer-=dt;if(goldTimer<=0){goldTimer=Math.max(CAP.goldMin,(60+Math.random()*120)/M.gold);if(goldReady())spawnGold();}
+}
+function ui(){
+ $('#count').innerHTML=fmt(Math.floor(S.cheese))+'<small>Käse</small>';
+ $('#cpsl').textContent='pro Sekunde: '+fmt(cps())+' · pro Klick: '+fmt(clickPower())+(M.auto?' · 🖱️ '+M.auto+'/s':'');
+ const now=Date.now();$('#buffs').innerHTML=buffs.map(b=>'<span class="buff">'+b.name+' ×'+b.mult+' · '+Math.ceil((b.end-now)/1000)+'s</span>').join('');
+ document.title=fmt(Math.floor(S.cheese))+' Käse – Käseclicker';
+ updStore();updUps();updTreeCan();
+ {const nb=document.querySelector('#nav button[data-k=tree]');if(nb)nb.classList.toggle('dot',NODES.some(n=>nodeState(n)==='av'&&S.cheese>=n.cost));}
+ if(tipFn&&tip.style.display==='block')tip.innerHTML=tipFn();
+}
+function news(){const t=$('#ticker');t.innerHTML='<span>📰 '+NEWS[newsI++%NEWS.length]+'</span>';}
+
+function afterLoad(){recalc();$('#bank').textContent=S.name;applyCursor();renderCheese();orbitN=-1;renderOrbit();upKey=null;treeKey=null;presLast='';dirty.types=dirty.items=dirty.ach=1;showTab();}
+
+load();
+for(let i=NEWS.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[NEWS[i],NEWS[j]]=[NEWS[j],NEWS[i]];}
+buildAmt();buildStore();buildTabs();buildNav();afterLoad();
+
+(function offline(){const away=(Date.now()-S.last)/1000;if(away>60&&cps()>0){const v=cps()*Math.min(away,86400)*.5;gain(v);
+ setTimeout(()=>toast('🌙 Während du weg warst ('+fmtTime(Math.min(away,86400))+'), haben deine Mäuse <b>'+fmt(v)+'</b> Käse gemacht!'),500);}})();
+news();
+setInterval(tick,50);setInterval(ui,100);
+setInterval(()=>{checkAll();renderTab(false);},1000);
+setInterval(news,9000);setInterval(save,10000);
+document.addEventListener('visibilitychange',save);addEventListener('beforeunload',save);
+</script>
+</body>
+</html>
